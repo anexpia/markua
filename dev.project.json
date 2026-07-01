@@ -1,0 +1,22 @@
+{
+  "name": "Markua",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "Markua": {
+        "$path": "src/roblox",
+        "BaseMarkua": {
+          "$path": "src/standalone"
+        }
+      }
+    },
+
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "Tests": {
+        "$path": "tests"
+      }
+    }
+  }
+}

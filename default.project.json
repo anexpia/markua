@@ -1,0 +1,9 @@
+{
+  "name": "Markua",
+  "tree": {
+    "$path": "src/roblox",
+    "BaseMarkua": {
+      "$path": "src/standalone"
+    }
+  }
+}

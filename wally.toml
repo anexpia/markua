@@ -1,0 +1,8 @@
+[package]
+name = "anexpia/markua"
+description = "A simple-to-use tag-based text markup system, similar to XML and HTML." 
+version = "1.0.0"
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+
+[dependencies]
