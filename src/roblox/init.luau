@@ -10,14 +10,15 @@ local IsClient = RS:IsClient()
 
 local Markua = require(script.BaseMarkua)
 
+type TextObject = TextLabel | TextBox | TextButton
+
 type BaseFormatter = Markua.BaseFormatter
 
 type TextFormatter = BaseFormatter & {
-	TextLabel: TextLabel,
+	TextObject: TextObject,
 	read Text: string,
 	
 	read Contexts: {
-		Input: boolean,
 		[string]: boolean,
 	},
 	
@@ -32,32 +33,35 @@ local function IsValidTextInstance(ins: Instance)
 	return (not ins:IsDescendantOf(StarterGui)) and (ins:IsA("TextLabel") or ins:IsA("TextBox") or ins:IsA("TextButton"))
 end
 
-local TextFormatterInfo: {[TextLabel]: TextFormatter} = {}
+local TextFormatterInfo: {[TextObject]: TextFormatter} = {}
 local AutoUpdatingFormatters: {[TextFormatter]: boolean} = {}
+local FormattersByContext: {[string]: {[TextFormatter]: any, n: number}} = {}
 
 local MarkuaRbx = {} 
 for k, v in Markua do MarkuaRbx[k] = v end 
 
 MarkuaRbx.AllFormatters = TextFormatterInfo
 MarkuaRbx.AutoUpdatingFormatters = AutoUpdatingFormatters
+MarkuaRbx.FormattersByContext = FormattersByContext
 
--- Assigns a TextFormatter to the provided textlabel that processes tags everytime the textlabel's text is changed.
-function MarkuaRbx.BindFormatter(textlabel: TextLabel): TextFormatter
-	local old = TextFormatterInfo[textlabel]
+-- Assigns a TextFormatter to the provided textobject that processes tags everytime the textobject's text is changed.
+function MarkuaRbx.BindFormatter(textobject: TextObject): TextFormatter
+	local old = TextFormatterInfo[textobject]
 	if old then return old end
 	
-	if not IsValidTextInstance(textlabel) then return end
+	if not IsValidTextInstance(textobject) then return end
 	
 	local formatter: TextFormatter = Markua.CreateFormatter() :: any
 	formatter.CacheEnabled = true
-	formatter.TextLabel = textlabel
+	formatter.TextObject = textobject
 	formatter.IsAutoUpdating = false 
 	formatter.Connections = {}
+	formatter.Contexts = {}
 	
-	local originaltext = textlabel.Text
+	local originaltext = textobject.Text
 	
 	local function UpdateText(isForceUpdate, overridetext: string?, isautoupdate: boolean?)
-		local newtext = if isForceUpdate then originaltext else (overridetext or textlabel.Text)
+		local newtext = if isForceUpdate then originaltext else (overridetext or textobject.Text)
 		
 		if not isForceUpdate then
 			if newtext == formatter.Text then return end 
@@ -67,15 +71,41 @@ function MarkuaRbx.BindFormatter(textlabel: TextLabel): TextFormatter
 		end
 		
 		-- when auto-updating, use cache and keep contexts unchanged.
-		formatter.LastFormatIdx = 0
 		formatter.UseCache = not not isautoupdate
 		
 		if not isautoupdate then
 			formatter.ShouldAutoUpdate = false
-			table.clear(formatter.Contexts)
+			for key in formatter.Contexts do formatter.Contexts[key] = false end
 		end
 		
 		newtext = Markua.FormatText(formatter, newtext)
+		
+		if not isautoupdate then
+			for key, val in formatter.Contexts do
+				if val then
+					local dict = FormattersByContext[key]
+					
+					if dict then
+						if not dict[formatter] then dict.n += 1 end
+					else
+						dict = {n = 1}
+						FormattersByContext[key] = dict
+					end
+					
+					dict[formatter] = val
+				else
+					formatter.Contexts[key] = nil
+					
+					local dict = FormattersByContext[key]
+					if dict and dict[formatter] then
+						dict[formatter] = nil
+						dict.n -= 1
+						
+						if dict.n <= 0 then FormattersByContext[key] = nil end
+					end
+				end
+			end
+		end
 		
 		local shouldAutoUpdate = formatter.ShouldAutoUpdate
 		if shouldAutoUpdate ~= formatter.IsAutoUpdating then
@@ -85,23 +115,23 @@ function MarkuaRbx.BindFormatter(textlabel: TextLabel): TextFormatter
 				
 		if newtext ~= formatter.Text then
 			formatter.Text = newtext
-			textlabel.Text = newtext
+			textobject.Text = newtext
 		end
 	end
 	
 	formatter.UpdateText = UpdateText
-	TextFormatterInfo[textlabel] = formatter
+	TextFormatterInfo[textobject] = formatter
 	
-	table.insert(formatter.Connections, textlabel:GetPropertyChangedSignal("Text"):Connect(UpdateText))
+	table.insert(formatter.Connections, textobject:GetPropertyChangedSignal("Text"):Connect(UpdateText))
 	
 	UpdateText()
 	
 	return formatter
 end
 
--- Removes the formatter associated with the provided textlabel.
-function MarkuaRbx.UnbindFormatter(textlabel: TextLabel)
-	local formatter = TextFormatterInfo[textlabel]
+-- Removes the formatter associated with the provided textobject.
+function MarkuaRbx.UnbindFormatter(textobject: TextObject)
+	local formatter = TextFormatterInfo[textobject]
 	if formatter then
 		for _, v in formatter.Connections do 
 			v:Disconnect()
@@ -111,23 +141,55 @@ function MarkuaRbx.UnbindFormatter(textlabel: TextLabel)
 			AutoUpdatingFormatters[formatter] = nil
 		end
 		
-		textlabel.Text = formatter.Text
+		for key in formatter.Contexts do
+			local dict = FormattersByContext[key]
+
+			if dict and dict[formatter] then
+				dict[formatter] = nil
+				dict.n -= 1
+				
+				if dict.n <= 0 then FormattersByContext[key] = nil end
+			end
+		end
+		
+		textobject.Text = formatter.Text
 		
 		table.clear(formatter)
-		TextFormatterInfo[textlabel] = nil
+		TextFormatterInfo[textobject] = nil
 	end
 end
 
--- Updates the text for the provided textlabel.
+-- Updates the text for the provided textobject.
 -- If a formatter is associated with it. directly updates the text via it rather than firing the text changed signal.
-function MarkuaRbx.SetText(textlabel: TextLabel, text: string)
-	local formatter = TextFormatterInfo[textlabel]
+function MarkuaRbx.SetText(textobject: TextObject, text: string)
+	local formatter = TextFormatterInfo[textobject]
 	if formatter then
 		formatter.UpdateText(nil, text)
 	else 
-		textlabel.Text = text
+		textobject.Text = text
 	end
 end
+
+-- Returns a dictionary of formatters associated with the provided context key(s)
+function MarkuaRbx.GetFormattersByContext(...: string): {[TextFormatter]: boolean}
+	local result = {}
+	
+	for i = 1, select("#", ...) do 
+		local key = select(i, ...)
+		local dict = FormattersByContext[key]
+		
+		if dict then
+			for formatter in dict do
+				if formatter == "n" then continue end 
+				result[formatter] = true
+			end
+		end
+	end
+	
+	return result
+end
+
+MarkuaRbx.GetFormattersByContext = MarkuaRbx.GetFormattersByContext
 
 local ListenersStarted = false
 
@@ -136,13 +198,13 @@ local ListenersStarted = false
 function MarkuaRbx.StartListeners(tagOverride: string?)
 	if ListenersStarted then return end
 	ListenersStarted = true
-
+	
 	if IsClient then
 		local tagname = tagOverride or "TextFormatted"
-
+		
 		CollectionService:GetInstanceAddedSignal(tagname):Connect(MarkuaRbx.BindFormatter)
-		for _, textLabel in CollectionService:GetTagged(tagname) do
-			MarkuaRbx.BindFormatter(textLabel)
+		for _, textObject in CollectionService:GetTagged(tagname) do
+			MarkuaRbx.BindFormatter(textObject)
 		end
 		
 		CollectionService:GetInstanceRemovedSignal(tagname):Connect(MarkuaRbx.UnbindFormatter)

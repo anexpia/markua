@@ -1,0 +1,63 @@
+title = "Markua"
+gitRepoUrl = "https://github.com/anexpia/markua"
+gitSourceBranch = "main"
+changelog = false
+
+classOrder = [
+    "Markua",
+    "MarkuaRoblox"
+]
+
+apiCategories = [
+    "Core",
+    "Roblox"
+]
+
+[home]
+enabled = true
+includeReadme = false
+
+[[home.features]]
+title = "Simple & Lightweight"
+description = "Designed to be highly performant and extendable with anything you need."
+
+[[home.features]]
+title = "Runtime Agnostic"
+description = "Works in any Luau runtime. "
+
+[[home.features]]
+title = "Familiar Syntax"
+description = "Practically the same syntax as XML, HTML, and roblox's Richtext"
+
+[docusaurus]
+onBrokenLinks = "throw"
+onBrokenMarkdownLinks = "warn"
+favicon = "img/favicon.ico"
+
+organizationName = "anexpia"
+projectName = "markua"
+url = "https://anexpia.github.io"
+baseUrl = "/markua/"
+tagline = "A simple-to-use tag-based text markup system for luau, similar to XML and HTML."
+
+stylesheets = [
+    { href = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css", type = "text/css" }
+]
+
+[navbar]
+title = ""
+
+[navbar.logo]
+alt = "Site Logo"
+src = "img/markua.png"
+
+[footer]
+style = "dark"
+copyright = "Copyright © 2026 Anexpia. Built with Moonwave and Docusaurus."
+
+[[footer.links]]
+title = "Social"
+items = [
+    { html = '<a href="https://github.com/anexpia/markua" target="_blank" rel="noopener noreferrer" class="footer__link-item"><i class="fa-brands fa-github"></i> GitHub</a>' },
+    { html = '<div class="footer__link-item" style="cursor: default;"><i class="fa-brands fa-discord"></i> Discord: @anexpia</div>' }
+]

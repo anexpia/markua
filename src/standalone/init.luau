@@ -1,5 +1,6 @@
 --!nonstrict
 --!optimize 2
+--!native
 
 local Markua = {}
 
@@ -24,7 +25,6 @@ export type FormatTag = {
 
 local FormatTags: {[string]: FormatTag} = {}
 
-@native
 local function ProcessTag(formatter: BaseFormatter, tag: string, attr: string, innerText: string?, processInner: (string) -> string)
 	local idx = formatter.LastFormatIdx + 1
 	formatter.LastFormatIdx = idx 
@@ -76,10 +76,9 @@ local function ProcessTag(formatter: BaseFormatter, tag: string, attr: string, i
 end
 
 -- Formats the provided string using the provided formatter object.
-@native
-function Markua.FormatText(formatter: BaseFormatter, text: string): string
+local function FormatText(formatter: BaseFormatter, text: string): string
 	local function processInner(inner: string)
-		return Markua.FormatText(formatter, inner)
+		return FormatText(formatter, inner)
 	end
 	
 	local result = ""
@@ -120,7 +119,7 @@ function Markua.FormatText(formatter: BaseFormatter, text: string): string
 					-- nesting of the same tag exists. life is bad. need to find actual closing tag.
 					local depth = 1
 					local tempSearchIdx = searchIdx
-
+					
 					local searchtag = `<{tag}%f[%W].-(/?)>`
 					
 					while true do
@@ -182,7 +181,7 @@ function Markua.CreateFormatter(): BaseFormatter
 	}
 end
 
--- Registers a custom tag. Callback should return new text, and <strong>true</strong> if the text cant be cached.
+-- Registers a custom tag. Callback should return new text, and <strong>true</strong> if the text cannot be cached.
 -- If `isVoid` is true, the tag will be processed as a void tag, and innerText won't be provided to the callback.
 -- Void tags are written as <strong><tag /></strong> instead of <strong><tag> text </tag></strong>.
 function Markua.RegisterTag(tagName: string, isVoid: boolean?, callback: TagCallback)
@@ -197,15 +196,20 @@ function Markua.RemoveTag(tagName: string)
 	FormatTags[tagName] = nil
 end
 
+-- Formats the provided string using the provided formatter object.
+function Markua.FormatText(formatter: BaseFormatter, text: string): string
+	formatter.LastFormatIdx = 0
+	return FormatText(formatter, text)
+end
+
 -- Formats the provided string without the need for a formatter object.
 function Markua.ProcessText(text: string): string
 	StaticFormatter.LastFormatIdx = 0
-	return Markua.FormatText(StaticFormatter, text)
+	return FormatText(StaticFormatter, text)
 end
 
 -- Parses the provided value into a boolean, number, or string.
 -- If the value is not a valid boolean or number, it will be returned as a string.
-@native
 local function parseAttributeValue(value: string): string | number | boolean
 	if value == "true" then return true end
 	if value == "false" then return false end
@@ -221,7 +225,6 @@ Markua.ParseAttrValue = parseAttributeValue
 
 -- Parses the provided attribute string into a dictionary.
 -- Attribute format must be <strong>a:1234 b:"string with spaces" c:true</strong>
-@native
 function Markua.ParseAttrDict(attr: string): ({[string]: any}?, string?)
 	local dict = {}
 	local i = 1
@@ -262,7 +265,6 @@ end
 
 -- Parses the provided attribute string into an array. 
 -- Attribute format must be <strong>1234 "string with spaces" true</strong>
-@native
 function Markua.ParseAttrArray(attr: string): ({any}?, string?)
 	local arr = {}
 	local arrcount = 0

@@ -1,0 +1,95 @@
+:root, [data-theme='light'], [data-theme='dark'] {
+  /* main */
+
+  --ifm-color-primary: #b4aae2;
+  --ifm-color-primary-dark: #8f86bb;
+  --ifm-color-primary-darker: #6d6495;
+  --ifm-color-primary-darkest: #3d3755;
+
+  --ifm-color-primary-light: #d2cbee;
+
+  --ifm-color-error: #df88ab;
+
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+
+  --ifm-background-color: #1a1a1a;
+
+  /* navbar */
+
+  --ifm-navbar-background-color: #232323;
+  --ifm-navbar-link-color: var(--ifm-color-primary-light);
+  --ifm-navbar-link-hover-color: var(--ifm-color-primary-dark);
+}
+
+/* navbar */
+
+.navbar {
+  border-bottom: 1px solid var(--ifm-color-primary-dark);
+  box-shadow: none;
+}
+
+.navbar__logo {
+  height: 2.5rem;
+  width: auto;
+}
+
+.navbar__title,
+[class*='colorModeToggle'],
+button[class*='toggleButton'] {
+  display: none !important;
+}
+
+/* footer */
+
+.footer {
+  background-color: var(--ifm-navbar-background-color);
+  border-top: 1px solid var(--ifm-color-primary-dark);
+  padding: 1.5rem;
+}
+
+.footer__copyright {
+  font-size: 0.8rem;
+  opacity: 0.6;
+}
+
+.footer__link-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* hacks because im bad at this */
+.pagination-nav {
+  display: none !important;
+}
+
+.theme-doc-markdown {
+  max-width: 100% !important;
+  margin: 0 auto;
+}
+
+/* other */
+
+.basicimagestyle {
+  width: 100%;
+  border-radius: 8px;
+  border: 2px solid var(--ifm-color-primary-darkest);
+}
+
+.basicimagestyle:hover {
+  border-color: var(--ifm-color-primary);
+}
+
+.baseimagecaption {
+  font-size: 0.9rem;
+  margin-top: 0.3rem;
+  color: #999;
+  text-align: center
+}
+
+.separatorline {
+  border-bottom: 2px solid var(--ifm-color-primary);
+  width: 100%;
+  margin: 1.5rem auto
+}
