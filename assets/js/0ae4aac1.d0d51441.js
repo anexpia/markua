@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkdocs=self.webpackChunkdocs||[]).push([[771],{4410:a=>{a.exports=JSON.parse('{"sourceUrl":"https://github.com/anexpia/markua/blob/main","baseUrl":"/markua/","classOrder":["Markua","MarkuaRbx"],"apiCategories":["Core","Roblox"]}')}}]);
