@@ -15,6 +15,8 @@ type BaseFormatter = Markua.BaseFormatter
 
 type TextFormatter = BaseFormatter & {
 	TextObject: TextObject,
+	
+	read BaseText: string,
 	read Text: string,
 	
 	read Contexts: {
@@ -55,17 +57,16 @@ function MarkuaRbx.BindFormatter(textobject: TextObject): TextFormatter
 	formatter.TextObject = textobject
 	formatter.Connections = {}
 	formatter.Contexts = {}
-	
-	local originaltext = textobject.Text
-	
+	formatter.BaseText = textobject.Text
+		
 	local function UpdateText(isForceUpdate, overridetext: string?, isautoupdate: boolean?)
-		local newtext = if isForceUpdate then originaltext else (overridetext or textobject.Text)
+		local newtext = if isForceUpdate then formatter.BaseText else (overridetext or textobject.Text)
 		
 		if not isForceUpdate then
 			if newtext == formatter.Text then return end 
-			if overridetext and newtext == originaltext then return end
+			if overridetext and newtext == formatter.BaseText then return end
 			
-			originaltext = newtext
+			formatter.BaseText = newtext
 		end
 		
 		-- when auto-updating, use cache and keep contexts unchanged.
@@ -140,7 +141,7 @@ function MarkuaRbx.UnbindFormatter(textobject: TextObject)
 		
 		for key in formatter.Contexts do
 			local dict = FormattersByContext[key]
-
+			
 			if dict and dict[formatter] then
 				dict[formatter] = nil
 				dict.n -= 1
@@ -149,7 +150,7 @@ function MarkuaRbx.UnbindFormatter(textobject: TextObject)
 			end
 		end
 		
-		textobject.Text = formatter.Text
+		textobject.Text = formatter.BaseText
 		
 		table.clear(formatter)
 		TextFormatterInfo[textobject] = nil

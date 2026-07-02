@@ -23,11 +23,11 @@ description = "Designed to be highly performant and extendable with anything you
 
 [[home.features]]
 title = "Runtime Agnostic"
-description = "Works in any Luau runtime. "
+description = "Works in any Luau runtime."
 
 [[home.features]]
 title = "Familiar Syntax"
-description = "Practically the same syntax as XML, HTML, and roblox's Richtext"
+description = "Practically the same syntax as XML, HTML, and roblox's RichText."
 
 [docusaurus]
 onBrokenLinks = "throw"

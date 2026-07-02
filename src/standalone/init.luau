@@ -20,12 +20,16 @@ export type BaseFormatter = {
 export type TagCallback = (formatter: BaseFormatter, attr: string, innerText: string?, processInner: (string) -> string) -> (string, boolean?)
 export type FormatTag = {
 	read callback: TagCallback,
+	read void: boolean,
+	
 	read closeTag: string?,
+	read depthSearchTag1: string?,
+	read depthSearchTag2: string?,
 }
 
 local FormatTags: {[string]: FormatTag} = {}
 
-local function ProcessTag(formatter: BaseFormatter, tag: string, attr: string, innerText: string?, processInner: (string) -> string)
+local function ProcessTag(formatter: BaseFormatter, tagInfo: FormatTag, attr: string, innerText: string?, processInner: (string) -> string)
 	local idx = formatter.LastFormatIdx + 1
 	formatter.LastFormatIdx = idx 
 	
@@ -38,22 +42,10 @@ local function ProcessTag(formatter: BaseFormatter, tag: string, attr: string, i
 			return old.text
 		end
 	end
+		
+	local result: string, nocache: boolean? = tagInfo.callback(formatter, attr, innerText, processInner)
 	
-	local tagInfo = FormatTags[tag]
-	local callback = tagInfo and tagInfo.callback
-	
-	local result: string
-	local nocache: boolean?
-	
-	if callback then
-		result, nocache = callback(formatter, attr, innerText, processInner)
-	elseif innerText then
-		result = `<{tag}{if attr ~= "" then ` {attr}` else ""}>{processInner(innerText)}</{tag}>`
-	else
-		result = `<{tag}{if attr ~= "" then ` {attr}` else ""} />`
-	end
-	
-	if not (nocache or formatter.IsStatic) and formatter.CacheEnabled then
+	if not (nocache) and formatter.CacheEnabled then
 		local toidx = formatter.LastFormatIdx
 	
 		for i = idx + 1, toidx do 
@@ -75,52 +67,71 @@ local function ProcessTag(formatter: BaseFormatter, tag: string, attr: string, i
 	return result
 end
 
+local concatArray = table.create(128, "")
+local concatIdx = 0
+local activeFormatters = 0 -- need to keep count of how many formatters are running at the same time
+-- so they dont all use the same segments of concatArray
+
 -- Formats the provided string using the provided formatter object.
 local function FormatText(formatter: BaseFormatter, text: string): string
 	local function processInner(inner: string)
 		return FormatText(formatter, inner)
 	end
 	
-	local result = ""
+	activeFormatters += 1
+	
+	local startConcatIdx = concatIdx
 	local i = 1
 	
 	local textlen = #text
 	while i <= textlen do
 		local startIdx, endIdx, tag, attr, lastchar = string.find(text, "<(%w+)%f[%W]%s*(.-)%s*(/?)>", i)
 		if not startIdx then
-			result ..= string.sub(text, i)
+			concatIdx += 1
+			concatArray[concatIdx] = string.sub(text, i)
 			break
 		end
 		
 		local tagInfo = FormatTags[tag]
-		local isVoidTag = lastchar == "/"
+		local isVoid = lastchar == "/"
 		
-		if isVoidTag then
-			if tagInfo and tagInfo.closeTag then
-				result ..= string.sub(text, i, endIdx)
-			else 
-				local replacement = ProcessTag(formatter, tag, attr, nil, processInner)
-				result ..= string.sub(text, i, startIdx - 1)
-				result ..= replacement
+		-- if a tag's type is mismatched, ignore it.
+		if tagInfo and isVoid ~= tagInfo.void then tagInfo = nil end
+		
+		-- return tag as-is. if not found or mismatched ⬆️⬆️
+		if not tagInfo then
+			concatIdx += 1
+			concatArray[concatIdx] = string.sub(text, i, endIdx)
+			i = endIdx + 1
+			
+			continue
+		end 
+		
+		if isVoid then
+			local replacement = ProcessTag(formatter, tagInfo, attr, nil, processInner)
+			
+			if startIdx > i then
+				concatIdx += 1
+				concatArray[concatIdx] = string.sub(text, i, startIdx - 1)
 			end
 			
-		elseif tagInfo and not tagInfo.closeTag then
-			result ..= string.sub(text, i, endIdx)
+			concatIdx += 1
+			concatArray[concatIdx] = replacement
 		else
 			local searchIdx = endIdx + 1
-			local closeTag = if tagInfo then tagInfo.closeTag else (`</{tag}>`)
+			local closeTag = tagInfo.closeTag
 			
 			local nextCloseStart, nextCloseEnd = string.find(text, closeTag, searchIdx, true)
 			
 			if nextCloseStart then
 				local innerChunk = string.sub(text, searchIdx, nextCloseStart - 1)
-
-				if string.find(innerChunk, `<{tag}%f[%W]`) then
+				
+				if string.find(innerChunk, tagInfo.depthSearchTag1) then
 					-- nesting of the same tag exists. life is bad. need to find actual closing tag.
 					local depth = 1
 					local tempSearchIdx = searchIdx
 					
-					local searchtag = `<{tag}%f[%W].-(/?)>`
+					local searchtag = tagInfo.depthSearchTag2
 					
 					while true do
 						nextCloseStart, nextCloseEnd = string.find(text, closeTag, tempSearchIdx, true)
@@ -145,19 +156,31 @@ local function FormatText(formatter: BaseFormatter, text: string): string
 			if nextCloseStart then
 				local innerText = string.sub(text, searchIdx, nextCloseStart - 1)
 	
-				local replacement = ProcessTag(formatter, tag, attr, innerText, processInner)
-				result ..= string.sub(text, i, startIdx - 1)
-				result ..= replacement
+				local replacement = ProcessTag(formatter, tagInfo, attr, innerText, processInner)
+				
+				if startIdx > i then
+					concatIdx += 1
+					concatArray[concatIdx] = string.sub(text, i, startIdx - 1)
+				end
+				
+				concatIdx += 1
+				concatArray[concatIdx] = replacement
 	
 				i = nextCloseEnd + 1
 				continue
 			else
-				result ..= string.sub(text, i, endIdx)
+				concatIdx += 1
+				concatArray[concatIdx] = string.sub(text, i, endIdx)
 			end
 		end
 		
 		i = endIdx + 1
 	end
+	
+	activeFormatters -= 1
+	
+	local result = table.concat(concatArray, "", startConcatIdx + 1, concatIdx)
+	concatIdx = if activeFormatters == 0 then 0 else startConcatIdx
 	
 	return result
 end
@@ -187,7 +210,11 @@ end
 function Markua.RegisterTag(tagName: string, isVoid: boolean?, callback: TagCallback)
 	FormatTags[tagName] = {
 		callback = callback, 
-		closeTag = if isVoid then nil else `</{tagName}>`
+		void = not not isVoid,
+		
+		closeTag = if isVoid then nil else `</{tagName}>`,
+		depthSearchTag1 = if isVoid then nil else `<{tagName}%f[%W]`,
+		depthSearchTag2 = if isVoid then nil else `<{tagName}%f[%W].-(/?)>`,
 	}
 end
 
@@ -231,24 +258,42 @@ function Markua.ParseAttrDict(attr: string): ({[string]: any}?, string?)
 	
 	local attrlen = #attr
 	while i <= attrlen do
-		local _, keyEnd, key = string.find(attr, "([%w_]+)=", i)
+		local _, keyEnd, key = string.find(attr, "([%w_]+)%s*=", i)
 		
 		if key then
 			i = keyEnd + 1
 			
-			local nextCharIdx = string.find(attr, "^%s", i)
+			local nextCharIdx = string.find(attr, "%S", i)
 			if nextCharIdx then i = nextCharIdx end
 			
-			local valStart, valEnd, val
+			local valStart, valEnd, _, val
 			local quote = string.sub(attr, i, i)
 			
 			if quote == '"' or quote == "'" then
-				valStart, valEnd = string.find(attr, `^%b{quote}{quote}`, i)
+				local quotepattern = `%b{quote}{quote}`
+				valStart, valEnd = string.find(attr, quotepattern, i)
+				val = if valEnd then string.sub(attr, valStart + 1, valEnd - 1) else nil 
 				
-				if valStart then val = string.sub(attr, valStart + 1, valEnd - 1)
-				else return nil, `Malformed attribute: missing closing quote for key '{key}'` end
+				while val do 
+					local escstart, escend = string.find(val, "\\+$")
+				
+					if escend and (escend - escstart) % 2 == 0 then 
+						-- skip past this
+						_, valEnd = string.find(attr, quotepattern, valEnd)
+						val = if valEnd then string.sub(attr, valStart + 1, valEnd - 1) else nil
+						continue
+					end
+					
+					break
+				end 
+				
+				if val then 
+					val = string.gsub(val, `\\([\\{quote}])`, "%1")
+				else 
+					return nil, `Malformed attribute: missing closing quote for key '{key}'` 
+				end
 			else
-				valStart, valEnd, val = string.find(attr, "^(%S+)", i)
+				valStart, valEnd, val = string.find(attr, "(%S+)", i)
 				if valStart then val = parseAttributeValue(val)
 				else return nil, `Malformed attribute: missing value for key '{key}'` end
 			end
@@ -265,15 +310,14 @@ end
 
 -- Parses the provided attribute string into an array. 
 -- Attribute format must be <strong>1234 "string with spaces" true</strong>
+local resultArray = table.create(128)
 function Markua.ParseAttrArray(attr: string): ({any}?, string?)
-	local arr = {}
 	local arrcount = 0
-	
 	local i = 1
 	
 	local attrlen = #attr
 	while i <= attrlen do
-		local nextCharIdx = string.find(attr, "[^%s%c]", i)
+		local nextCharIdx = string.find(attr, "%S", i)
 		
 		if not nextCharIdx then break end -- no more valid values.
 		i = nextCharIdx
@@ -282,24 +326,44 @@ function Markua.ParseAttrArray(attr: string): ({any}?, string?)
 		local quote = string.sub(attr, i, i)
 		
 		if quote == '"' or quote == "'" then
-			valStart, valEnd = string.find(attr, `^%b{quote}{quote}`, i)
+			local quotepattern = `%b{quote}{quote}`
+			valStart, valEnd = string.find(attr, quotepattern, i)
+			val = if valEnd then string.sub(attr, valStart + 1, valEnd - 1) else nil 
+						
+			while val do 
+				local escstart, escend = string.find(val, "\\+$")
+				
+				if escend and (escend - escstart) % 2 == 0 then 
+					-- skip past this
+					_, valEnd = string.find(attr, quotepattern, valEnd)
+					val = if valEnd then string.sub(attr, valStart + 1, valEnd - 1) else nil
+					continue
+				end
+				
+				break
+			end 
 			
-			if valStart then val = string.sub(attr, valStart + 1, valEnd - 1)
-			else return nil, `Malformed array attribute: missing closing quote` end
+			if val then 
+				val = string.gsub(val, `\\([\\{quote}])`, "%1")
+			else 
+				return nil, `Malformed array attribute: missing closing quote` 
+			end
 		else
-			valStart, valEnd, val = string.find(attr, "^([^%s%c]+)", i)
+			valStart, valEnd, val = string.find(attr, "(%S+)", i)
 			
 			if valStart then val = parseAttributeValue(val)
 			else return nil, `Malformed array attribute: expected value` end
 		end
 		
 		arrcount += 1
-		arr[arrcount] = val
+		resultArray[arrcount] = val
 			
 		i = valEnd + 1
 	end
 	
-	return arr
+	local result = {}
+	table.move(resultArray, 1, arrcount, 1, result)
+	return result
 end
 
 return Markua
