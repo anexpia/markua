@@ -3,7 +3,6 @@
 
 local CollectionService = game:GetService("CollectionService")
 local StarterGui = game:GetService("StarterGui")
-local UIS = game:GetService("UserInputService")
 local RS = game:GetService("RunService")
 
 local IsClient = RS:IsClient()
@@ -54,7 +53,6 @@ function MarkuaRbx.BindFormatter(textobject: TextObject): TextFormatter
 	local formatter: TextFormatter = Markua.CreateFormatter() :: any
 	formatter.CacheEnabled = true
 	formatter.TextObject = textobject
-	formatter.IsAutoUpdating = false 
 	formatter.Connections = {}
 	formatter.Contexts = {}
 	
@@ -123,7 +121,6 @@ function MarkuaRbx.BindFormatter(textobject: TextObject): TextFormatter
 	TextFormatterInfo[textobject] = formatter
 	
 	table.insert(formatter.Connections, textobject:GetPropertyChangedSignal("Text"):Connect(UpdateText))
-	
 	UpdateText()
 	
 	return formatter
@@ -208,14 +205,6 @@ function MarkuaRbx.StartListeners(tagOverride: string?)
 		end
 		
 		CollectionService:GetInstanceRemovedSignal(tagname):Connect(MarkuaRbx.UnbindFormatter)
-		
-		UIS:GetPropertyChangedSignal("PreferredInput"):Connect(function()
-			for _, formatter in TextFormatterInfo do 
-				if formatter.Contexts.Input then
-					formatter.UpdateText(true)
-				end
-			end
-		end)
 		
 		RS.PreRender:Connect(function(dt)
 			for formatter in AutoUpdatingFormatters do 

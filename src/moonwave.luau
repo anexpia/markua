@@ -12,7 +12,7 @@
 --- @within Markua
 --- .IsStatic boolean -- Whether this formatter instance is static. Only true for formatter of ProcessText()
 --- .CacheEnabled boolean? -- Whether format results should be stored in a cache
---- .UseCache boolean? -- Whether the cached format results should be reused
+--- .UseCache boolean? -- Whether the cached format results should be used.
 
 --- @type TagCallback (formatter: BaseFormatter, attr: string, innerText: string?, processInner: (string) -> string) -> (string, boolean?)
 --- @within Markua
@@ -58,7 +58,7 @@
 
 --- @function ParseAttrDict
 --- @within Markua
---- @param attr string -- The raw attribute string formatted as key-value pairs (eg. `a:123 b:"hello"`).
+--- @param attr string -- The raw attribute string formatted as key-value pairs (eg. `a=123 b="hello"`).
 --- @return {[string]: any}? -- A dictionary of parsed keys and values, or `nil` if syntax is malformed.
 --- @return string? -- An error message if attribute parsing failed.
 --- Parses the provided attribute string into a dictionary.
@@ -71,20 +71,20 @@
 --- Parses the provided attribute string into an array.
 
 --------------------------------------------------------------------------------
--- MARKUAROBLOX
+-- MarkuaRbx
 --------------------------------------------------------------------------------
 
 --[=[
-	@class MarkuaRoblox
-	Wrapper for Markua in Roblox. Provides extra handy features.
+	@class MarkuaRbx
+	Wrapper for Markua in Roblox. Provides extra handy features.\
 	This extends Markua and contains all its members. Only extended members are listed.
 ]=]
 
 --- @type TextObject TextLabel | TextBox | TextButton
---- @within MarkuaRoblox
+--- @within MarkuaRbx
 
 --- @interface TextFormatter
---- @within MarkuaRoblox
+--- @within MarkuaRbx
 --- .TextObject TextObject -- Text object associated with the formatter.
 --- .Text string -- Current text of the textobject.
 --- .Contexts { Input: boolean, [string]: boolean } -- Active context flags for triggering updates when a condition is met. (eg. input changes result in updates) 
@@ -95,42 +95,42 @@
 --- This extends BaseFormatter and contains all its members.
 
 --- @prop AllFormatters {[TextObject]: TextFormatter}
---- @within MarkuaRoblox
+--- @within MarkuaRbx
 --- Dictionary mapping text objects to their associated formatter.
 
 --- @prop AutoUpdatingFormatters {[TextFormatter]: boolean}
---- @within MarkuaRoblox
+--- @within MarkuaRbx
 --- Dictionary containing all formatters marked as auto-updating.
 
 --- @prop FormattersByContext {[string]: {[TextFormatter]: any, n: number}}
---- @within MarkuaRoblox
+--- @within MarkuaRbx
 --- Dictionary mapping context keys to formatters & their values. 'n' is number of formatters.
 
 --- @function BindFormatter
---- @within MarkuaRoblox
+--- @within MarkuaRbx
 --- @param textobject TextObject
 --- @return TextFormatter
 --- Assigns a TextFormatter to the provided textobject that processes tags everytime the textobject's text is changed.
 
 --- @function UnbindFormatter
---- @within MarkuaRoblox
+--- @within MarkuaRbx
 --- @param textobject TextObject
 --- Removes the formatter associated with the provided textobject.
 
 --- @function SetText
---- @within MarkuaRoblox
+--- @within MarkuaRbx
 --- @param textobject TextObject
 --- @param text string
 --- Updates the text for the provided textobject.
 --- If a formatter is associated with it, directly updates the text via it rather than firing the text changed signal.
 
 --- @function GetFormattersByContext
---- @within MarkuaRoblox
+--- @within MarkuaRbx
 --- @param keys ...string
 --- @return {[TextFormatter]: boolean}
 --- Returns a dictionary of formatters associated with the provided context key(s).
 
 --- @function StartListeners
---- @within MarkuaRoblox
+--- @within MarkuaRbx
 --- @param tagOverride string? -- Optional override for the tag used in CollectionService to find the text objects to format.
 --- Starts listening for text objects tagged with `tagOverride` or "TextFormatted" and automatically adds/removes formatters for them

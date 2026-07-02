@@ -29,7 +29,7 @@ local function assertEqual(actual: any, expected: any, msg: string?, msgoverride
 end
 
 test("ParseAttrDict - simple", function()
-	local dict, err = Markua.ParseAttrDict('color:"red" bold:true size:18 count:100.5')
+	local dict, err = Markua.ParseAttrDict('color="red" bold=true size=18 count=100.5')
 	assertEqual(err, nil, "Should not return error", true)
 	assert(dict ~= nil, "Dict should not be nil", true)
 	
@@ -40,7 +40,7 @@ test("ParseAttrDict - simple", function()
 end)
 
 test("ParseAttrDict - spaces in strings", function()
-	local dict, err = Markua.ParseAttrDict('title:"Hello\tWorld" active:false')
+	local dict, err = Markua.ParseAttrDict('title="Hello\tWorld" active=false')
 	assertEqual(err, nil, "Should not return error", true)
 	assert(dict ~= nil, "Dict should not be nil", true)
 	
@@ -49,7 +49,7 @@ test("ParseAttrDict - spaces in strings", function()
 end)
 
 test("ParseAttrDict - unquoted string", function()
-	local dict, err = Markua.ParseAttrDict('color:red')
+	local dict, err = Markua.ParseAttrDict('color=red')
 	assertEqual(err, nil, "Should not return error", true)
 	assert(dict ~= nil, "Dict should not be nil", true)
 	
@@ -57,7 +57,7 @@ test("ParseAttrDict - unquoted string", function()
 end)
 
 test("ParseAttrDict - malformed quoted string", function()
-	local dict, err = Markua.ParseAttrDict('color:"red')
+	local dict, err = Markua.ParseAttrDict('color="red')
 	assert(dict == nil, "Dict should be nil")
 	assert(type(err) == "string", "Error message should exist")
 end)
@@ -95,7 +95,7 @@ test("Tags - void", function()
 		return `{dict.val or "nothing"}`
 	end)
 	
-	local result = Markua.ProcessText('<testvoid val:"hello" />')
+	local result = Markua.ProcessText('<testvoid val="hello" />')
 	assertEqual(result, "hello")
 end)
 
@@ -104,7 +104,7 @@ test("Tags - standard", function()
 		return string.upper(processInner(innerText))
 	end)
 	
-	local result = Markua.ProcessText('<teststandard>hello <testvoid val:"world" /></teststandard>')
+	local result = Markua.ProcessText('<teststandard>hello <testvoid val="world" /></teststandard>')
 	assertEqual(result, "HELLO WORLD")
 end)
 

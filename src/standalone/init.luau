@@ -224,14 +224,14 @@ end
 Markua.ParseAttrValue = parseAttributeValue
 
 -- Parses the provided attribute string into a dictionary.
--- Attribute format must be <strong>a:1234 b:"string with spaces" c:true</strong>
+-- Attribute format must be <strong>a=1234 b="string with spaces" c=true</strong>
 function Markua.ParseAttrDict(attr: string): ({[string]: any}?, string?)
 	local dict = {}
 	local i = 1
 	
 	local attrlen = #attr
 	while i <= attrlen do
-		local _, keyEnd, key = string.find(attr, "([%w_]+):", i)
+		local _, keyEnd, key = string.find(attr, "([%w_]+)=", i)
 		
 		if key then
 			i = keyEnd + 1

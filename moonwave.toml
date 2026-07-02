@@ -5,7 +5,7 @@ changelog = false
 
 classOrder = [
     "Markua",
-    "MarkuaRoblox"
+    "MarkuaRbx"
 ]
 
 apiCategories = [
