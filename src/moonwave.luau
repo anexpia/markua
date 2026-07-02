@@ -10,7 +10,7 @@
 
 --- @interface BaseFormatter
 --- @within Markua
---- .IsStatic boolean -- Whether this formatter instance is static. Only true for formatter of ProcessText()
+--- .IsStatic boolean -- Whether this formatter instance is static. Only true for formatter used in ProcessText()
 --- .CacheEnabled boolean? -- Whether format results should be stored in a cache
 --- .UseCache boolean? -- Whether the cached format results should be used.
 
@@ -58,14 +58,14 @@
 
 --- @function ParseAttrDict
 --- @within Markua
---- @param attr string -- The raw attribute string formatted as key-value pairs (eg. `a=123 b="hello"`).
+--- @param attr string -- The raw attribute string formatted as key-value pairs (eg. a=123 b="hello").
 --- @return {[string]: any}? -- A dictionary of parsed keys and values, or `nil` if syntax is malformed.
 --- @return string? -- An error message if attribute parsing failed.
 --- Parses the provided attribute string into a dictionary.
 
 --- @function ParseAttrArray
 --- @within Markua
---- @param attr string -- The raw attribute string formatted as space-separated values (eg. `123 "string with spaces" true`).
+--- @param attr string -- The raw attribute string formatted as space-separated values (eg. 123 "string with spaces" true).
 --- @return {any}? -- An array of parsed attribute values, or `nil` if syntax is malformed.
 --- @return string? -- An error message if attribute parsing failed.
 --- Parses the provided attribute string into an array.
@@ -87,7 +87,8 @@
 --- @within MarkuaRbx
 --- .TextObject TextObject -- Text object associated with the formatter.
 --- .Text string -- Current text of the textobject.
---- .Contexts { Input: boolean, [string]: boolean } -- Active context flags for triggering updates when a condition is met. (eg. input changes result in updates) 
+--- .BaseText string -- Original text before being processed.
+--- .Contexts { [string]: boolean } -- Active context flags for triggering updates when a condition is met. (eg. input changes result in updates) 
 --- .ShouldAutoUpdate boolean? -- Whether the formatter should be marked as being autoupdated each frame. Only change in callbacks.
 --- .IsAutoUpdating boolean? -- Whether the formatter is being auto-updated every frame. Do not manually change.
 --- .Connections {[any]: RBXScriptConnection}

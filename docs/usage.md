@@ -137,6 +137,8 @@ The Roblox integration of Markua is a better example of how this is used.
 Markua provides functions to decode attribute strings into dictionaries or arrays.\
 Each returns a table or an error message if the attributes are malformed.
 
+You can directly use the attribute string if you don't want to use them. This is the recommended way if you aren't adding multiple attributes for your tags.
+
 ### Dictionaries (`ParseAttrDict`)
 
 ```lua
